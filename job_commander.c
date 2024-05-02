@@ -77,7 +77,7 @@ int main() {
     check_server();
 
     // Example command to send to jobExecutorServer
-    const char *example_command = "ls -l";
+    const char *example_command = "./hello";
     send_command(example_command);
 
     return 0;
