@@ -15,78 +15,58 @@
 
 pid_t server_pid = -1;
 
-void signal_handler(int sig) {
-    if (sig == SIGCHLD) {
-        int status;
-        wait(&status);
-        printf("Child process terminated.\n");
-    }
-}
-
+// Function to start the server
 void start_server() {
     printf("Starting jobExecutorServer...\n");
-    pid_t pid = fork();
-    if (pid == 0) {
-        execl("./jobExecutorServer", "jobExecutorServer", NULL);    //check why it doesn't start the server
-        perror("execl");
-        exit(EXIT_FAILURE);
-    } else if (pid > 0) {
-        server_pid = pid;
+    pid_t pid = fork(); // Create a child process
+    if (pid == 0) { // Child process
+        execl("./server", "jobExecutorServer", NULL); // Execute the server program
+        perror("execl"); // Print error in case execl fails
+        exit(EXIT_FAILURE); // Exit child process with failure
+    } else if (pid > 0) { // Parent process
+        server_pid = pid; // Assign server PID
         printf("jobExecutorServer started with PID: %d\n", server_pid);
-        FILE *server_file = fopen(SERVER_FILE, "w");
-        if (server_file != NULL) {
-            fprintf(server_file, "%d", server_pid);
-            fclose(server_file);
+        FILE *server_file = fopen(SERVER_FILE, "w"); // Open server file for writing
+        if (server_file != NULL) { // Check if file opened successfully
+            fprintf(server_file, "%d", server_pid); // Write server PID to file
+            fclose(server_file); // Close server file
         } else {
-            perror("fopen");
-            exit(EXIT_FAILURE);
+            perror("fopen"); // Print error in case fopen fails
+            exit(EXIT_FAILURE); // Exit parent process with failure
         }
     } else {
-        perror("fork");
-        exit(EXIT_FAILURE);
+        perror("fork"); // Print error in case fork fails
+        exit(EXIT_FAILURE); // Exit parent process with failure
     }
 }
 
-void check_server() {
-    if (access(SERVER_FILE, F_OK) != -1) {
-        FILE *server_file = fopen(SERVER_FILE, "r");
-        if (server_file != NULL) {
-            fscanf(server_file, "%d", &server_pid);
-            fclose(server_file);
-            printf("jobExecutorServer is active with PID: %d\n", server_pid);
-        }
-    } else {
-        start_server();
-    }
-}
-
+// Function to send commands through FIFO
 void send_command(char **arr) {
-    mkfifo(FIFO_PATH, 0666);
-    int fd = open(FIFO_PATH, O_WRONLY | O_CREAT, 0644);
+    mkfifo(FIFO_PATH, 0666); // Create FIFO with read/write permissions
+    int fd = open(FIFO_PATH, O_WRONLY | O_CREAT, 0644); // Open FIFO for writing
     
-    if (fd == -1) {
-        perror("Error opening file");
+    if (fd == -1) { // Check if opening FIFO failed
+        perror("Error opening file"); // Print error message in case it does fail
     }
 
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < 4; i++) { 
         size_t len = strlen(arr[i]);
-        if (write(fd, arr[i], len) != len) {
-            perror("Error writing to file");
+        if (write(fd, arr[i], len) != len) { // Write command to FIFO
+            perror("Error writing to file"); // Print error in case writing fails
         }
-        printf("Wrote %s\n", arr[i]);
-        usleep(100000);
+        printf("Wrote %s\n", arr[i]); // Print the written command
+        usleep(100000); // Wait for a short duration
     }
 
-    close(fd);
-    unlink(FIFO_PATH);
+    close(fd); // Close FIFO
+    unlink(FIFO_PATH); // Remove FIFO from the filesystem
 }
 
 int main() {
-    signal(SIGCHLD, signal_handler);   //last step make the signals
-    check_server();
+    start_server(); // Start the server
 
-    char *arr[4] = {"./hello", "./hello", "./hello", "./hello"};
-    send_command(arr);
+    char *arr[4] = {"./hello", "./hello", "./hello", "./hello"}; // Define commands
+    send_command(arr); // Send commands through FIFO
 
     return 0;
 }
