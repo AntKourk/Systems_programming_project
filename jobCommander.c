@@ -20,7 +20,7 @@ void start_server() {
     printf("Starting jobExecutorServer...\n");
     pid_t pid = fork(); // Create a child process
     if (pid == 0) { // Child process
-        execl("./server", "jobExecutorServer", NULL); // Execute the server program
+        execl("./jobExecutorServer", "jobExecutorServer", NULL); // Execute the server program
         perror("execl"); // Print error in case execl fails
         exit(EXIT_FAILURE); // Exit child process with failure
     } else if (pid > 0) { // Parent process
@@ -65,7 +65,7 @@ void send_command(char **arr) {
 int main() {
     start_server(); // Start the server
 
-    char *arr[4] = {"./hello", "./hello", "./hello", "./hello"}; // Define commands
+    char *arr[4] = {"ls -l", "ls -l", "ls -l", "ls -l"}; // Define commands
     send_command(arr); // Send commands through FIFO
 
     return 0;
